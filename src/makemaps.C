@@ -515,6 +515,368 @@ void MakeMaps()
 
 }
 
+
+
+void MakeMaps_flatsky()
+{
+  
+  int i,j,k,index;
+  int i1,j1,k1,i2,j2,k2;
+  
+  float xm,ym,zm;    // position in map coordinates
+  float x,y,z;       // position in cube coordinates
+
+  int ig, jg, kg; // cell location on the grid
+  
+  double theta,phi;   // angle in cube coordinates
+  float deg2rad=2.*M_PI/360.;
+
+  float Omegam = Parameters.Omegam;
+  float Omegab = Parameters.Omegab;
+  float Omegal = 1-Omegam;
+  float      h = Parameters.h;
+  float  zInit = clParameters.zInit;
+  float zKappa = clParameters.zKappa;
+
+  float Tcmb = 2.726e6; // Tcmb in muK
+  float hoc = h * 1e2 / 3e5; // H0/c in units of 1/Mpc
+
+  float thompson = 6.65e-25;
+  float YHe = 0.25;
+  float hubble0 = 100./3.086e19*h;
+  float ne0=Omegab*h*h*1.88e-29/1.67e-24;
+  float c=3e10;
+
+  float dtau0=thompson*ne0*c/hubble0;
+
+  float NHe;
+
+  // Set Radius to Redshift Table
+  
+  Radius2RedshiftTable = new double[NRTABLE];
+  SetRadius2RedshiftTable(h, Omegam, Omegal, Radius2RedshiftTable);
+
+  // Set Redshift to Radius Table
+  
+  Redshift2RadiusTable = new double[NZTABLE];
+  SetRedshift2RadiusTable(h, Omegam, Omegal, Redshift2RadiusTable);
+
+  // Set Redshift to Wdtb Table
+  
+  Redshift2WdtbTable = new double[NZTABLE];
+  SetRedshift2WdtbTable(h, Omegab, Omegam, Omegal, Redshift2WdtbTable, clParameters.evolve); 
+
+  // Local copies of parameters
+
+  float BoxSize     = clParameters.BoxSize;
+
+  float x0,y0,z0; // position of corner of box so it spans [x0,y0,z0] to [x0+boxsize,y0+boxsize,z0+boxsize], in Mpc
+
+  // set shell
+  float nu1  = Parameters.nu1;
+  float nu2  = Parameters.nu2;
+  int   Nnu  = Parameters.Nnu;
+  float dnu  = (nu2-nu1)/Nnu;
+
+  float zmin = Parameters.InitialRedshift;
+  float zmax = Parameters.FinalRedshift;
+  if (clParameters.mapcode == 8){
+    zmax = Nu2Redshift(nu1);
+    zmin = Nu2Redshift(nu2);
+    if(myid==0) printf("zmin=%f zmax=%f nu1=%f nu2=%f\n",zmin,zmax,nu1,nu2);
+  }else{
+    if(myid==0) printf("zmin=%f zmax=%f\n",zmin,zmax);
+  }
+  float rmin = Redshift2Float(zmin,Redshift2RadiusTable);
+  float rmax = Redshift2Float(zmax,Redshift2RadiusTable);
+  
+  /*
+  xc0 = clParameters.BoxCenter[0] ;
+  yc0 = clParameters.BoxCenter[1] ;
+  zc0 = clParameters.BoxCenter[2] ;
+  */
+
+  // Get Global box corners
+  x0 = clParameters.BoxCenter[0] - BoxSize / 2;
+  y0 = clParameters.BoxCenter[1] - BoxSize / 2;
+  z0 = clParameters.BoxCenter[2] - BoxSize / 2;
+
+  int N=clParameters.N;
+  
+  int Nxmin = Nlocal * myid;
+  float slabsize = BoxSize / nproc;
+  float slab_xoffset = slabsize * myid;
+
+  tmapsize = N*N*N; // HARDCODE
+
+  if(myid==0) printf("x0,y0,z0 = %f,%f,%f\n",x0,y0,z0);
+  if(myid==0) printf("rmin = %f rmax = %f BoxSize = %f tmapsize=%d \n",rmin,rmax,BoxSize,tmapsize);
+
+  // Allocate the map
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  //float *dtbmapl;
+  if(Parameters.DoMap[DTBCODE]==1) {
+    if(myid==0) dtbmap = new float[tmapsize](); 
+    dtbmapl = new float[tmapsize]();
+  }
+
+  float CellSize = BoxSize / N ;
+  float CellVolume = CellSize*CellSize*CellSize;
+
+  // Do I need this for the halos?
+  float **bb = new float*[2];
+  bb[0] = new float[3];
+  bb[1] = new float[3];
+
+  // slab corners
+  float xs1,ys1,zs1,xs2,ys2,zs2;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  double t1 = MPI_Wtime();
+
+  int iLPT = clParameters.lptcode;
+
+  int Nhalos = halos.N;
+
+  // set corners of slab
+  xs1 = x0 + slab_xoffset;
+  ys1 = y0;
+  zs1 = z0;
+
+  xs2 = xs1 + slabsize;
+  ys2 = ys1 + BoxSize;
+  zs2 = zs1 + BoxSize;
+
+  bb[0][0]=xs1; bb[0][1]=ys1; bb[0][2]=zs1;
+  bb[1][0]=xs2; bb[1][1]=ys2; bb[1][2]=zs2;
+
+  // Initialize halo mask
+  //for(int ic=0;ic<Nlocal;ic++){
+  //  for(int jc=0;     jc<N;jc++){
+  //    for(int kc=0;     kc<N;kc++){
+  //	int index_dv = ic*N*(N+2) + jc*(N+2) + kc;
+  //	halomask[index_dv]=0;
+  //    }
+  //  }
+  //}
+
+  // Loop over halos and mask
+  /*
+  float fcoll=0;
+  float HaloVolumeTot=0;
+  for(int ih=0;ih<Nhalos;ih++){
+
+    float xhL = halos.xL[ih]; float yhL = halos.yL[ih]; float zhL = halos.zL[ih]; 
+    float xhE = halos.x[ih];  float yhE = halos.y[ih];  float zhE = halos.z[ih]; 
+    float RTH = halos.RTH[ih];
+    float R200 = RTH / pow(200.,1./3.);
+
+    float x1  = xhL - RTH ;
+    float y1  = yhL - RTH ;
+    float z1  = zhL - RTH ;
+      
+    float x2  = xhL + RTH ;
+    float y2  = yhL + RTH ;
+    float z2  = zhL + RTH ;
+
+    float HaloVolume = 4./3.*3.14159*RTH*RTH*RTH;
+
+    if( ((x1>xs1 && x1<xs2) || (x2>xs1 && x2<xs2)) &&
+	((y1>ys1 && y1<ys2) || (y2>ys1 && y2<ys2)) &&
+	((z1>zs1 && z1<zs2) || (z2>zs1 && z2<zs2))   ){
+
+      HaloVolumeTot += HaloVolume;
+
+      int nshift = 500;
+      float big = CellSize*nshift;
+
+      x1+=big;y1+=big;z1+=big;
+      x2+=big;y2+=big;z2+=big;
+
+      i1 = (int)((x1-xs1)/CellSize) - nshift;
+      j1 = (int)((y1-ys1)/CellSize) - nshift;
+      k1 = (int)((z1-zs1)/CellSize) - nshift;
+
+      i2 = (int)((x2-xs1)/CellSize) - nshift;
+      j2 = (int)((y2-ys1)/CellSize) - nshift;
+      k2 = (int)((z2-zs1)/CellSize) - nshift;
+
+      x1-=big;y1-=big;z1-=big;
+      x2-=big;y2-=big;z2-=big;
+
+      // Count overlapping cells
+      int OverlapNumber=0;
+      for (int i=i1; i<i2; i++){
+	float x = xs1 + (i+0.5)*CellSize;
+	for (int j=j1; j<j2; j++){
+	  float y = ys1 + (j+0.5)*CellSize;
+	  for (int k=k1; k<k2; k++){
+	    float z = zs1 + (k+0.5)*CellSize;
+	      
+	    float R = pow((x-xhL)*(x-xhL)+(y-yhL)*(y-yhL)+(z-zhL)*(z-zhL),0.5);
+	    if(R<RTH+CellSize/1.5) OverlapNumber++;
+	  }
+	}
+      }
+
+      if(OverlapNumber == 0) printf("ERROR: Halo must overlap at least one cell\n");
+
+      if(i1 <       0) i1 = 0;        if(j1 <  0) j1 = 0  ; if(k1 <  0) k1 = 0  ; 
+      if(i2 >= Nlocal) i2 = Nlocal-1; if(j2 >= N) j2 = N-1; if(k2 >= N) k2 = N-1; 
+      
+      float CellFill = HaloVolume / CellVolume / OverlapNumber;
+
+      // Loop over grid cells that might overlap 
+      for (int i=i1; i<i2; i++){
+	float x = xs1 + (i+0.5)*CellSize;
+	for (int j=j1; j<j2; j++){
+	  float y = ys1 + (j+0.5)*CellSize;
+	  for (int k=k1; k<k2; k++){
+	    float z = zs1 + (k+0.5)*CellSize;
+	      
+	    float R = pow((x-xhL)*(x-xhL)+(y-yhL)*(y-yhL)+(z-zhL)*(z-zhL),0.5);
+
+	    if(R<RTH+CellSize/1.5){
+	      float frad = pow(R/RTH,3);
+	      int index_mask = i*N*(N+2) + j*(N+2) + k;
+	      sx1[index_mask] = (xhE-x) * frad;
+	      sy1[index_mask] = (yhE-y) * frad;
+	      sz1[index_mask] = (zhE-z) * frad;
+	      halomask[index_mask] += CellFill;
+	      fcoll += CellFill;
+	    }
+	  }
+	}
+      }
+
+    }      
+  }
+  */
+
+  printf("slab_xoffset: %f \n", slab_xoffset);
+
+  long pixel;
+  
+  // (Note that x and z are switched)
+  // Loop through cells in the slab
+  for(int ic=0;ic<Nlocal;ic++){
+    float xL = xs1 + (ic+0.5)*CellSize;
+    for(int jc=0;jc<N;jc++){
+      float yL = ys1 + (jc+0.5)*CellSize;
+      for(int kc=0;kc<N;kc++){
+	float zL = zs1 + (kc+0.5)*CellSize;
+      
+	float r = sqrt(xL*xL + yL*yL + zL*zL);
+	      
+	//if(r < rmin - 2*CellSize || r > rmax + 2*CellSize) continue;
+
+	float zcur   = Radius2Float(r,Radius2RedshiftTable);
+
+	int index_dv = ic*N*(N+2) + jc*(N+2) + kc;
+
+	// 21cm redshift factors
+	float dtbfac;
+	float   Wdtb;
+	float     nu;
+	int      inu;
+	if(Parameters.DoMap[DTBCODE]==1){
+	  Wdtb   = Redshift2Float(zcur,Redshift2WdtbTable);
+	  nu     = Redshift2Nu(zcur);
+	  //dtbfac = Wdtb * xHI * 
+	  //  pow(CellSize,3) / pow(r,2) * mapsize / 4. / 3.14159 / dnu;
+	  inu    = (int)((nu-nu1)/dnu);
+	  if(inu<0 || inu >= Nnu){ inu=0; dtbfac = 0; }
+	}
+      
+	// Perform LPT
+	float D      = growth(zcur,Parameters.Omegam,Parameters.Omegal, Parameters.w)/DInit;
+	if(clParameters.evolve == 0) D = 1;
+	float D2     = 3. / 7. * D * D;
+      
+	float xE,yE,zE;
+
+	// Displacements
+	float sx,sy,sz;
+
+	sx = 0; sy = 0; sz = 0;
+	if(iLPT > 0) {
+	  sx += D * sx1[index_dv] ; 
+	  sy += D * sy1[index_dv] ; 
+	  sz += D * sz1[index_dv] ;
+	} 
+	if(iLPT > 1) {
+	  sx += D2 * sx2[index_dv] ;
+	  sy += D2 * sy2[index_dv] ;
+	  sz += D2 * sz2[index_dv] ;
+	}
+
+	// Velocities
+	float vx,vy,vz;
+	// f=1 and missing 2lpt for now need to fix 
+	float aHf = 100*h*pow(pow((1+zcur),3)*Omegam+1-Omegam,0.5)/(1+zcur)/3e5;
+       
+	vx = aHf * sx;
+	vy = aHf * sy;
+	vz = aHf * sz;
+
+	float vdotn = (vx*xL+vy*yL+vz*zL) / r ;
+
+	//This is weird and looks like a hack
+	//if(halomask[index_dv]>0){
+	//sx = sx1[index_dv] ;
+	//sy = sy1[index_dv] ;
+	//sz = sz1[index_dv] ;
+	//}
+
+	xE = xL + sx ;
+	yE = yL + sy ; 
+	zE = zL + sz ;
+      
+	// Add contribution to Eulerian point -- x-z flipped    
+
+	kg = int((xE - x0)/CellSize)% N; // Periodic wrap
+	jg = int((yE - y0)/CellSize)% N;
+	ig = int((zE - z0)/CellSize)% N;
+	pixel = ig*N*N + jg*N + kg;
+
+	if(pixel > tmapsize) printf("Uh oh this shouldn't be happening... \n");
+
+	if(Parameters.DoMap[DTBCODE]==1){ 
+	  dtbmapl[pixel] += delta1[index_dv];
+	  //printf("%i %f %f \n", index_dv, dtbmapl[pixel], delta1[index_dv]);
+	    // * (1-halomask[index_dv]);
+	    }
+      
+      }
+    }
+  }
+
+
+  
+  MPI_Barrier(MPI_COMM_WORLD);
+  double dt = MPI_Wtime() - t1;
+  if(myid==0) printf("\n Projection took %le seconds\n",dt);
+
+  if(Parameters.DoMap[DTBCODE]==1 && myid==0) ReportMapStatistics(dtbmapl,tmapsize," 21-cm dTb local");
+
+  // sum process contributions
+  if(Parameters.DoMap[DTBCODE]==1)
+    MPI_Reduce(dtbmapl, dtbmap,tmapsize, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  if(Parameters.DoMap[DTBCODE]==1) delete dtbmapl;
+  
+  if(myid==0) printf("\n Sum process contributions complete\n");
+
+  // report statistics
+  if(Parameters.DoMap[DTBCODE]==1 && myid==0) ReportMapStatistics(dtbmap,tmapsize," 21-cm dTb");
+  if(Parameters.DoMap[DTBCODE]==1 && myid==0) ReportMapStatistics(delta1,N*N*Nlocal," delta1");
+
+  if (myid==0) printf("\n Report map stats complete \n");
+
+}
+
 int SlabShellOverlap(float **bb, float rmin, float rmax){
 
   for(int i1=0;i1<2;i1++){
@@ -566,7 +928,7 @@ float Redshift2Nu(float z){
 
 void ReportMapStatistics(float *map, int mapsize, char *variable){
   
-  int i;
+  long i;
   double  mean, var, rms, sum;
   
   // mean

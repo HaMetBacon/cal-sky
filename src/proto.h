@@ -32,11 +32,12 @@ int  ijk2index(int, int, int);
 void ReadGridFromFile(float *, char *);
 void ReadHaloFile(char *);
 void ReadParameterFile();
-void WriteMaps();
+void WriteMaps(int flatsky=0);
 void WriteLPT();
 
 // makemaps.C
 void MakeMaps();
+void MakeMaps_flatsky();
 
 #endif
 

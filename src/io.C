@@ -17,6 +17,7 @@
 #define MAXTAGS 300
 
 void WriteSingleMap(float *, char *);
+void WriteSingleMap_flatsky(float *, char *);
 void WriteSingletMap(float *, char *);
 
 void ReadParameterFile()
@@ -361,7 +362,7 @@ void WriteLPT()
   if(myid==0) printf("\n 2LPT data written...");
 }
 
-void WriteMaps()
+void WriteMaps(int flatsky)
 {
 
   if(myid==0){
@@ -372,7 +373,11 @@ void WriteMaps()
     if(Parameters.DoMap[KSZCODE]) WriteSingleMap (kszmap,"ksz");
     if(Parameters.DoMap[TAUCODE]) WriteSingleMap (taumap,"tau");
     if(Parameters.DoMap[CIBCODE]) WriteSingleMap (cibmap,"cib");
-    if(Parameters.DoMap[DTBCODE]) WriteSingletMap(dtbmap,"dtb");
+    if(Parameters.DoMap[DTBCODE]){ 
+      if(flatsky == 0){
+	WriteSingletMap(dtbmap,"dtb");
+      }else{
+	WriteSingleMap_flatsky(dtbmap,"dtb");}}
 
     printf("\n Maps written...");
 
@@ -432,4 +437,20 @@ void WriteSingletMap(float *map, char *base){
     }
 
   }
+}
+
+void WriteSingleMap_flatsky(float *map, char *base){
+
+  char fname[256], coord[1];
+  FILE *fout;
+
+  int N=clParameters.N;
+  int  mapsize = N*N*N;
+  
+  // binary format
+  sprintf(fname,"%s_%s.bin",clParameters.BaseOut,base);
+  fout = fopen(fname,"wb");   
+  fwrite(map,4,mapsize,fout);
+  fclose(fout);
+
 }

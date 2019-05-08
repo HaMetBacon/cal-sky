@@ -90,6 +90,8 @@ void Displace_1LPT(float *d, float *vx, float *vy, float *vz)
   NormalizeArray(vy, N, size_fftw, 1.5);
   NormalizeArray(vz, N, size_fftw, 1.5);
 
+  if(myid==0) printf("\n 1LPT calculated...");
+
   return;
   
 }

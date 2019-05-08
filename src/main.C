@@ -75,7 +75,22 @@ int main(int argc, char *argv[])
   float nu2 = Parameters.nu2;
   float dnu = (nu2-nu1)/Nnu_tot;
 
+  // HARDCODE
+  int flatsky = 1;
+
   if(Parameters.DoMap[DTBCODE]==1){
+
+    if(flatsky == 1){
+
+      // Make maps
+      MakeMaps_flatsky();
+      MPI_Barrier(MPI_COMM_WORLD);
+      
+      // Write maps
+      WriteMaps(flatsky);
+      MPI_Barrier(MPI_COMM_WORLD);
+
+    }else{
 
     for (int ci=0; ci<Nchunk; ci++){
       // Make maps
@@ -101,6 +116,8 @@ int main(int argc, char *argv[])
       if(myid==0 && Parameters.DoMap[DTBCODE]==1) delete dtbmap;
       MPI_Barrier(MPI_COMM_WORLD);
     }
+    }
+
   }
   else{
 

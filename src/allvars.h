@@ -57,12 +57,13 @@ extern float *taumapl, *kszmapl, *dtbmapl, *kapmapl, *cibmapl;
 extern struct Halos{
   int   N; 
   float RTHmax, redshift;
-  float *x,*y,*z,*vx,*vy,*vz,*xL,*yL,*zL,*RTH;
+  float *x,*y,*z,*vx,*vy,*vz,*xL,*yL,*zL,*RTH, *zform;
 } halos;
 
 // Parameters
 extern struct Parameter{
   float Omegam, Omegab, Omegal, h, ns, Sigma8, w;
+  int flatsky, nbuff;
   float BoxSize, zInit, fov, theta, phi;
   float nu1,nu2;
   int Nnu;

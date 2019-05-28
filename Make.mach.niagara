@@ -1,0 +1,21 @@
+#----------------------------------------------------------------------
+# OPTIONS FOR RUNNING ON SCINET-GPC MACHINES
+#----------------------------------------------------------------------
+
+F90 = mpif90
+F77 = mpif77
+
+OPTIMIZE =  -O4 -w -mcmodel=large -shared-intel 
+
+MODFLAG = -module 
+OMPLIB = -openmp
+
+FFTW2_PATH = $(HOME)/fftw-2.1.5/
+CFITS_PATH = $(SCINET_CFITSIO_ROOT)
+GSL_PATH = $(SCINET_GSL_ROOT)
+
+CC = mpicc
+C++ = mpicxx
+
+OPTIONS = -w 
+

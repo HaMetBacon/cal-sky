@@ -14,7 +14,7 @@
 #define DOUBLE 2
 #define STRING 3
 #define INT 4
-#define MAXTAGS 300
+#define MAXTAGS 400
 
 void WriteSingleMap(float *, char *);
 void WriteSingleMap_flatsky(float *, char *);
@@ -24,12 +24,12 @@ void ReadParameterFile()
 {
 
   FILE *fd, *fdout;
-  char buf[200], buf1[200], buf2[200], buf3[400];
+  char buf[400], buf1[400], buf2[400], buf3[400];
   char fname[256];
   int i, j, nt;
   int id[MAXTAGS];
   void *addr[MAXTAGS];
-  char tag[MAXTAGS][50];
+  char tag[MAXTAGS][100];
 
   sprintf(fname,clParameters.ParamFile);
 
@@ -74,6 +74,14 @@ void ReadParameterFile()
   strcpy(tag[nt], "DeltaFile");
   addr[nt] = &Parameters.DeltaFile;
   id[nt++] = STRING;  
+
+  strcpy(tag[nt], "flatsky");
+  addr[nt] = &Parameters.flatsky;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "nbuff");
+  addr[nt] = &Parameters.nbuff;
+  id[nt++] = INT;
 
   strcpy(tag[nt], "fov");
   addr[nt] = &Parameters.fov;
@@ -215,31 +223,68 @@ void ReadHaloFile(char *fname){
     printf(" RTHmax = %f\n",halos.RTHmax);
   }
 
-  halos.x   = new float[Nhalos];
-  halos.y   = new float[Nhalos];
-  halos.z   = new float[Nhalos];
-  halos.vx  = new float[Nhalos];
-  halos.vy  = new float[Nhalos];
-  halos.vz  = new float[Nhalos];
-  halos.RTH = new float[Nhalos];
-  halos.xL  = new float[Nhalos];
-  halos.yL  = new float[Nhalos];
-  halos.zL  = new float[Nhalos];
+  int Nhin = 0;
+  float Rcut = 0.673;
+  //float Rcut = 2.0;
+
+  halos.x      = new float[Nhalos];
+  halos.y      = new float[Nhalos];
+  halos.z      = new float[Nhalos];
+  halos.vx     = new float[Nhalos];
+  halos.vy     = new float[Nhalos];
+  halos.vz     = new float[Nhalos];
+  halos.RTH    = new float[Nhalos];
+  halos.xL     = new float[Nhalos];
+  halos.yL     = new float[Nhalos];
+  halos.zL     = new float[Nhalos];
+  halos.zform  = new float[Nhalos];
+  
+  // Local copies of parameters
+  float xl, yl, zl, vxl, vyl, vzl;
+  float RTHl, xLl, yLl, zLl, zforml;
 
   for(long i=0;i<Nhalos;i++){
-    fread(&halos.x[i],  4,1,fd);
-    fread(&halos.y[i],  4,1,fd);
-    fread(&halos.z[i],  4,1,fd);
-    fread(&halos.vx[i], 4,1,fd);
-    fread(&halos.vy[i], 4,1,fd);
-    fread(&halos.vz[i], 4,1,fd);
-    fread(&halos.RTH[i],4,1,fd);
-    fread(&halos.zL[i], 4,1,fd);
-    fread(&halos.yL[i], 4,1,fd);
-    fread(&halos.xL[i], 4,1,fd);
+
+    // Here we are flipping x and z
+    fread(&zl,  4,1,fd);
+    fread(&yl,  4,1,fd);
+    fread(&xl,  4,1,fd);
+    fread(&vzl, 4,1,fd);
+    fread(&vyl, 4,1,fd);
+    fread(&vxl, 4,1,fd);
+    fread(&RTHl,4,1,fd);
+    fread(&zLl, 4,1,fd);
+    fread(&yLl, 4,1,fd);
+    fread(&xLl, 4,1,fd);
+    fread(&zforml, 4,1,fd);
+
+    if(RTHl > Rcut){
+
+      halos.x[Nhin] = xl;
+      halos.y[Nhin] = yl;
+      halos.z[Nhin] = zl;
+      halos.vx[Nhin] = vxl;
+      halos.vy[Nhin] = vyl;
+      halos.vz[Nhin] = vzl;
+      halos.RTH[Nhin] = RTHl;
+      halos.xL[Nhin] = xLl;
+      halos.yL[Nhin] = yLl;
+      halos.zL[Nhin] = zLl;
+      halos.zform[Nhin] = zforml;
+
+      Nhin += 1;
+
+      if(myid == 0 && i<5) printf("\n Halo: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f. \n",
+				  halos.x[i], halos.y[i], halos.z[i], halos.vx[i], halos.vy[i], halos.vz[i],
+				  halos.RTH[i], halos.zL[i], halos.yL[i], halos.xL[i], halos.zform[i]);
+
+    }
+
   }
 
-  if(myid==0) printf("\n halo data read...");
+  Nhalos = Nhin;
+  halos.N = Nhin;
+  if(myid==0) printf("\n %i halos read... ", halos.N);
 
   /*
   halos.N = 1;

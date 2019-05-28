@@ -11,8 +11,26 @@ void Displace_1LPT(float *d, float *vx, float *vy, float *vz)
   int i,j,k,r,index;  
 
   // Local copies of parameters
-  int N=Parameters.N;
-  float BoxSize=Parameters.BoxSize;
+  float BoxSize     = clParameters.BoxSize;
+  int N             = clParameters.N;
+  int nbuff         = Parameters.nbuff;
+  //int nbuff = 16;
+  float CellSize;
+  if(nbuff > 0){
+    int Nsub = N - 2*nbuff;
+    
+    // Based on the internal box
+    CellSize = BoxSize / Nsub;
+
+    // Now we want the full box
+    BoxSize = CellSize * N;
+    
+  }else{
+    CellSize = BoxSize / N ;
+  }
+
+  //int N=Parameters.N;
+  //float BoxSize=Parameters.BoxSize;
 
   // Cell sizes and volumes in k space
   float dk=2.*M_PI/BoxSize;
@@ -90,7 +108,7 @@ void Displace_1LPT(float *d, float *vx, float *vy, float *vz)
   NormalizeArray(vy, N, size_fftw, 1.5);
   NormalizeArray(vz, N, size_fftw, 1.5);
 
-  if(myid==0) printf("\n 1LPT calculated...");
+  if(myid==0) printf("\n 1LPT calculated... \n");
 
   return;
   
@@ -104,8 +122,27 @@ void Displace_2LPT(float  *d1, float  *d2,
   int i,j,k,r,index;
 
   // Local copies of parameters
-  int N=Parameters.N;
-  float BoxSize=Parameters.BoxSize;
+  float BoxSize     = clParameters.BoxSize;
+  int N             = clParameters.N;
+  int nbuff         = Parameters.nbuff;
+  //int nbuff = 16;
+  float CellSize;
+  if(nbuff > 0){
+    int Nsub = N - 2*nbuff;
+    
+    // Based on the internal box
+    CellSize = BoxSize / Nsub;
+
+    // Now we want the full box
+    BoxSize = CellSize * N;
+    
+  }else{
+    CellSize = BoxSize / N ;
+  }
+
+
+  //int N=Parameters.N;
+  //float BoxSize=Parameters.BoxSize;
 
   // Cell sizes and volumes in k space
   float dk=2.*M_PI/BoxSize;

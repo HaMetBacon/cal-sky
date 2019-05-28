@@ -64,7 +64,7 @@ void AllocateArrays()
   delta = delta1;
 
   if(clParameters.zmask>0)       zmask = new float[size_fftw]();
-  halomask = delta;
+  if(clParameters.halomask == 1) halomask = new float[size_fftw]();
 
   sx1=sx2=sy1=sy2=sz1=sz2=delta;
 

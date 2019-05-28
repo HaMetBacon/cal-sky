@@ -75,8 +75,8 @@ int main(int argc, char *argv[])
   float nu2 = Parameters.nu2;
   float dnu = (nu2-nu1)/Nnu_tot;
 
-  // HARDCODE
-  int flatsky = 1;
+  // local copy
+  int flatsky = Parameters.flatsky;
 
   if(Parameters.DoMap[DTBCODE]==1){
 

@@ -647,7 +647,7 @@ void MakeMaps_flatsky()
   ys2 = ys1 + BoxSize;
   zs2 = zs1 + BoxSize;
 
-  if(clParameters.halomask==1){
+  if((clParameters.halomask==1) && (clParameters.maskfile==0)){
 
     if(myid == 0) printf("We are doing the masking.... \n");
   
@@ -761,8 +761,8 @@ void MakeMaps_flatsky()
 		  //    && (zhL > (z-0.5*CellSize) && zhL < (z+0.5*CellSize))) ){
 		{
 		int index_mask = i*N*(N+2) + j*(N+2) + k;
-		//halomask[index_mask] = 1.0;
-		halomask[index_mask] += CellFill;
+		halomask[index_mask] = 1.0;
+		//halomask[index_mask] += CellFill;
 	      
 	      
 		//float frad = pow(R/RTH,3);
@@ -815,7 +815,7 @@ void MakeMaps_flatsky()
 
   // Conversion factor for delta1 to HI mass
   //float HI_cell = 213666890.3;
-  float HI_cell = 235018517.7;
+  float HI_cell = 152857296.6;
   //float HI_cell = 1.0;
   
   // Loop through cells in the slab
@@ -894,20 +894,27 @@ void MakeMaps_flatsky()
 	zE = zL + sz ;
       
 	// Add contribution to Eulerian point - xz flip happens for halos.
-	ig = int((xE - x0)/CellSize)% N; // Periodic wrap
-	jg = int((yE - y0)/CellSize)% N;
-	kg = int((zE - z0)/CellSize)% N;
-	pixel = ig*N*N + jg*N + kg;
+	ig = int((xE - x0)/CellSize); // NO PERIODIC WRAP
+	jg = int((yE - y0)/CellSize);
+	kg = int((zE - z0)/CellSize);
 
-	if(pixel > tmapsize) printf("Uh oh this shouldn't be happening... \n");
+	if( ((ig >= 0) && (ig < N))
+	    && ((jg >= 0) && (jg < N))
+	    && ((kg >= 0) && (kg < N)) ){
 
-	if(Parameters.DoMap[DTBCODE]==1){ 
-	  if(clParameters.halomask == 1){
-	    dtbmapl[pixel] += HI_cell*(1.+delta1[index_dv])*(1.-halomask[index_dv]);
-	  }else{
-	    dtbmapl[pixel] += HI_cell*(1.+delta1[index_dv]);
-	  }
+	  pixel = ig*N*N + jg*N + kg;
+
+	  if(pixel > tmapsize) printf("Uh oh this shouldn't be happening... \n");
+
+	  if(Parameters.DoMap[DTBCODE]==1){ 
+	    if(clParameters.halomask == 1){
+	      dtbmapl[pixel] += HI_cell*(1.+delta1[index_dv])*(1.-halomask[index_dv]);
+	    }else{
+	      dtbmapl[pixel] += HI_cell*(1.+delta1[index_dv]);
 	    }
+	  }
+	  
+	}
       
       }
     }

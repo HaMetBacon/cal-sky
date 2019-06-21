@@ -53,8 +53,13 @@ int main(int argc, char *argv[])
   // Read input files
   if(clParameters.zmask==1)
     ReadGridFromFile( zmask, clParameters.RedshiftFile);
-  if(clParameters.halomask==1)
-    ReadHaloFile(clParameters.HaloFile);
+  if(clParameters.halomask==1){
+    if(clParameters.maskfile==0){
+      ReadHaloFile(clParameters.HaloFile);
+    }else{
+      ReadGridFromFile(halomask, clParameters.HaloFile);
+    }
+  }
   if(clParameters.deltain==1)
     ReadGridFromFile( delta1, clParameters.DeltaFile);
   MPI_Barrier(MPI_COMM_WORLD);

@@ -28,6 +28,7 @@ void usage(){
     printf("\n   -k lensing source z   [default = 1100]");
     printf("\n   -e evolution code     [default = 1 --> evolution");
     printf("\n   -b binary map only    [default = 0 --> fits and binary]");
+    printf("\n   -t mask file          [default = 0]");
     printf("\n   -m binary map code (e.g. kap=0 --> no ; kap=1 --> yes)");
     printf("\n       = kap * 1  (CMB lensing)");
     printf("\n       + ksz * 2  (kinetic SZ) ");
@@ -74,8 +75,9 @@ void CommandLine(int argc, char *argv[])
   clParameters.zKappa       = 1100;
   clParameters.evolve       = 1;
   clParameters.binary_only  = 0;
+  clParameters.maskfile     = 0;
   
-  while ((c = getopt (argc, argv, "hvP:D:R:H:F:o:N:B:p:C:x:y:z:r:l:m:k:e:b:")) != -1)
+  while ((c = getopt (argc, argv, "hvP:D:R:H:F:o:N:B:p:C:x:y:z:r:l:m:k:e:b:t:")) != -1)
     switch (c)
       {
       case 'h':
@@ -142,6 +144,9 @@ void CommandLine(int argc, char *argv[])
 	break;
       case 'b':
 	clParameters.binary_only = atoi(optarg);
+	break;
+      case 't':
+	clParameters.maskfile = atoi(optarg); 
 	break;
       case '?':
 	if (optopt == 'i'){

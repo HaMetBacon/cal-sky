@@ -224,8 +224,8 @@ void ReadHaloFile(char *fname){
   }
 
   int Nhin = 0;
-  float Rcut = 0.673;
-  //float Rcut = 2.0;
+  //float Rcut = 0.673;
+  float Rcut = 2.0;
 
   halos.x      = new float[Nhalos];
   halos.y      = new float[Nhalos];

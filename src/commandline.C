@@ -29,6 +29,7 @@ void usage(){
     printf("\n   -e evolution code     [default = 1 --> evolution");
     printf("\n   -b binary map only    [default = 0 --> fits and binary]");
     printf("\n   -t mask file          [default = 0]");
+    printf("\n   -G HI cell value      [default = 1.0]");
     printf("\n   -m binary map code (e.g. kap=0 --> no ; kap=1 --> yes)");
     printf("\n       = kap * 1  (CMB lensing)");
     printf("\n       + ksz * 2  (kinetic SZ) ");
@@ -76,8 +77,9 @@ void CommandLine(int argc, char *argv[])
   clParameters.evolve       = 1;
   clParameters.binary_only  = 0;
   clParameters.maskfile     = 0;
+  clParameters.HIcell       = 0;
   
-  while ((c = getopt (argc, argv, "hvP:D:R:H:F:o:N:B:p:C:x:y:z:r:l:m:k:e:b:t:")) != -1)
+  while ((c = getopt (argc, argv, "hvP:D:R:H:F:o:N:B:p:C:x:y:z:r:l:m:k:e:b:t:G:")) != -1)
     switch (c)
       {
       case 'h':
@@ -147,6 +149,9 @@ void CommandLine(int argc, char *argv[])
 	break;
       case 't':
 	clParameters.maskfile = atoi(optarg); 
+	break;
+      case 'G':
+	clParameters.HIcell = atof(optarg); 
 	break;
       case '?':
 	if (optopt == 'i'){

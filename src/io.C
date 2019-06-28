@@ -490,7 +490,7 @@ void WriteSingleMap_flatsky(float *map, char *base){
   FILE *fout;
 
   int N=clParameters.N;
-  int  mapsize = N*N*N;
+  long  mapsize = (N/2)*(N/2)*(N/2);
   
   // binary format
   sprintf(fname,"%s_%s.bin",clParameters.BaseOut,base);

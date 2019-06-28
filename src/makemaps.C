@@ -526,7 +526,7 @@ void MakeMaps_flatsky()
   int i1,j1,k1,i2,j2,k2;
   
   float xm,ym,zm;    // position in map coordinates
-  float x,y,z;       // position in cube coordinates
+  //float x,y,z;       // position in cube coordinates
 
   int ig, jg, kg; // cell location on the grid
   
@@ -578,11 +578,15 @@ void MakeMaps_flatsky()
 
     // Now we want the full box
     BoxSize = CellSize * N;
+
+    printf("CellSize %f, BoxSize %f, N %i, Nsub %i \n", CellSize, BoxSize, N, nbuff, Nsub);
     
   }else{
     CellSize = BoxSize / N ;
   }
   float CellVolume = CellSize*CellSize*CellSize;
+
+
 
   float x0,y0,z0; // position of corner of box so it spans [x0,y0,z0] to [x0+boxsize,y0+boxsize,z0+boxsize], in Mpc
 
@@ -613,18 +617,22 @@ void MakeMaps_flatsky()
   float slabsize = BoxSize / nproc;
   float slab_xoffset = slabsize * myid;
 
-  tmapsize = N*N*N; // HARDCODE
+  printf("Nlocal=%i, slabsize=%f slab_xoffset=%f\n",Nlocal,slabsize,slab_xoffset);
+
+  //tmapsize = N/2*N/2*N/2; // HARDCODE
+  long tmsize = (N/2)*(N/2)*(N/2);
+  
 
   if(myid==0) printf("x0,y0,z0 = %f,%f,%f\n",x0,y0,z0);
-  if(myid==0) printf("rmin = %f rmax = %f BoxSize = %f tmapsize=%d \n",rmin,rmax,BoxSize,tmapsize);
+  if(myid==0) printf("rmin = %f rmax = %f BoxSize = %f tmapsize=%ld \n",rmin,rmax,BoxSize,tmsize);
 
   // Allocate the map
   MPI_Barrier(MPI_COMM_WORLD);
 
   //float *dtbmapl;
   if(Parameters.DoMap[DTBCODE]==1) {
-    if(myid==0) dtbmap = new float[tmapsize](); 
-    dtbmapl = new float[tmapsize]();
+    if(myid==0) dtbmap = new float[tmsize](); 
+    dtbmapl = new float[tmsize]();
   }
 
   // slab corners
@@ -637,6 +645,8 @@ void MakeMaps_flatsky()
   int iLPT = clParameters.lptcode;
 
   int Nhalos = halos.N;
+  
+  printf("Nhalos=%i \n", Nhalos);
 
   // set corners of slab
   xs1 = x0 + slab_xoffset;
@@ -667,131 +677,68 @@ void MakeMaps_flatsky()
     for(int ih=0;ih<Nhalos;ih++){
 
       float xhL = halos.xL[ih]; float yhL = halos.yL[ih]; float zhL = halos.zL[ih]; 
-      float xhE = halos.x[ih];  float yhE = halos.y[ih];  float zhE = halos.z[ih]; 
+      //float xhE = halos.x[ih];  float yhE = halos.y[ih];  float zhE = halos.z[ih]; 
       float RTH = halos.RTH[ih];
       float R200 = RTH / pow(200.,1./3.);
-
-      float x1  = xhL - RTH ;
-      float y1  = yhL - RTH ;
-      float z1  = zhL - RTH ;
       
-      float x2  = xhL + RTH ;
-      float y2  = yhL + RTH ;
-      float z2  = zhL + RTH ;
 
-      float HaloVolume = 4./3.*3.14159*RTH*RTH*RTH;
+      //i1 = (int)((xhL-RTH-xs1)/CellSize);
+      //j1 = (int)((yhL-RTH-ys1)/CellSize);
+      //k1 = (int)((zhL-RTH-zs1)/CellSize);
+
+      //i2 = (int)((xhL+RTH-xs1)/CellSize);
+      //j2 = (int)((yhL+RTH-ys1)/CellSize);
+      //k2 = (int)((zhL+RTH-zs1)/CellSize);
+      	
+
+      //if(i1 <       0) i1 = 0;        if(j1 <  0) j1 = 0  ; if(k1 <  0) k1 = 0  ; 
+      //if(i2 >= Nlocal) i2 = Nlocal; if(j2 >= N) j2 = N; if(k2 >= N) k2 = N; 
       
-      if( ((x1>xs1 && x1<xs2) || (x2>xs1 && x2<xs2)) &&
-	  ((y1>ys1 && y1<ys2) || (y2>ys1 && y2<ys2)) &&
-	  ((z1>zs1 && z1<zs2) || (z2>zs1 && z2<zs2))   ){
-	
-	HaloVolumeTot += HaloVolume;
+      // Loop over grid cells that might overlap 
+      
+      //for (int i=i1; i<i2; i++){
+      //float x = xs1 + (i+0.5)*CellSize;
+	//for (int j=j1; j<j2; j++){
+      //float y = ys1 + (j+0.5)*CellSize;
+	  //for (int k=k1; k<k2; k++){
+      //    float z = zs1 + (k+0.5)*CellSize;
 
-	int nshift = 500;
-	float big = CellSize*nshift;
-	
-	x1+=big;y1+=big;z1+=big;
-	x2+=big;y2+=big;z2+=big;
+      for(int i=0; i<Nlocal; i++){
+	float gx = xs1 + i*CellSize + CellSize/2;
+	if(abs(gx-xhL) < RTH){
+	  for(int j=0; j<N; j++){
+	    float gy = ys1 + j*CellSize + CellSize/2;
+	    if(abs(gy-yhL) < RTH){
+	      for(int k=0; k<N; k++){
+		float gz = zs1 + k*CellSize + CellSize/2;
 
-	i1 = (int)((x1-xs1)/CellSize) - nshift;
-	j1 = (int)((y1-ys1)/CellSize) - nshift;
-	k1 = (int)((z1-zs1)/CellSize) - nshift;
+		float R = pow((gx-xhL)*(gx-xhL)+(gy-yhL)*(gy-yhL)+(gz-zhL)*(gz-zhL),0.5);
 
-	i2 = (int)((x2-xs1)/CellSize) - nshift;
-	j2 = (int)((y2-ys1)/CellSize) - nshift;
-	k2 = (int)((z2-zs1)/CellSize) - nshift;
-	
-	x1-=big;y1-=big;z1-=big;
-	x2-=big;y2-=big;z2-=big;
-	
-	// Count overlapping cells
-	int OverlapNumber=0;
-	for (int i=i1; i<i2; i++){
-	  float x = xs1 + (i+0.5)*CellSize;
-	  for (int j=j1; j<j2; j++){
-	    float y = ys1 + (j+0.5)*CellSize;
-	    for (int k=k1; k<k2; k++){
-	      float z = zs1 + (k+0.5)*CellSize;
+		if(R<RTH)
+		  {
+		    int index_mask = i*N*(N+2) + j*(N+2) + k;
+		    halomask[index_mask] = 1.0;
+		  }
 	      
-	      float R = pow((x-xhL)*(x-xhL)+(y-yhL)*(y-yhL)+(z-zhL)*(z-zhL),0.5);
-
-	      //if(R<RTH+CellSize/pow(2.0, 0.5)){
-	      if(R<RTH+CellSize/1.5){
-		OverlapNumber++;
-		// }else  if(    (xhL > (x-0.5*CellSize) && xhL < (x+0.5*CellSize))
-		//		    && (yhL > (y-0.5*CellSize) && yhL < (y+0.5*CellSize))
-		//	    && (zhL > (z-0.5*CellSize) && zhL < (z+0.5*CellSize)) ){
-		// If halos are very small the may fail first check
-		// So we also check if they are inside the cell.
-		//	OverlapNumber++;
 	      }
-
-
-	    }
-	  }
-	}
-	
-	if(OverlapNumber == 0){ 
-	  //printf("ERROR: Halo must overlap at least one cell\n");
-	  //printf("ERROR: Radius %f, xh %f, yh %f, zh %f, xs1 %f, ys1 %f, zs1 %f. \n",
-	  // 	 RTH, xhL, yhL, zhL, xs1, ys1, zs1);
-	  continue;
-	}
-
-	if(i1 <       0) i1 = 0;        if(j1 <  0) j1 = 0  ; if(k1 <  0) k1 = 0  ; 
-	if(i2 >= Nlocal) i2 = Nlocal-1; if(j2 >= N) j2 = N-1; if(k2 >= N) k2 = N-1; 
-	
-	float CellFill = HaloVolume / CellVolume / OverlapNumber;
-
-	// Loop over grid cells that might overlap 
-	for (int i=i1; i<i2; i++){
-	  float x = xs1 + (i+0.5)*CellSize;
-	  for (int j=j1; j<j2; j++){
-	    float y = ys1 + (j+0.5)*CellSize;
-	    for (int k=k1; k<k2; k++){
-	      float z = zs1 + (k+0.5)*CellSize;
-
-	      float R = pow((x-xhL)*(x-xhL)+(y-yhL)*(y-yhL)+(z-zhL)*(z-zhL),0.5);
-
-	      //if( (R<RTH+CellSize/pow(2.0, 0.5))
-	      if(R<RTH+CellSize/1.5)
-	      //if( (R<RTH+CellSize/1.5)
-		  //|| ((xhL > (x-0.5*CellSize) && xhL < (x+0.5*CellSize))
-		  //    && (yhL > (y-0.5*CellSize) && yhL < (y+0.5*CellSize))
-		  //    && (zhL > (z-0.5*CellSize) && zhL < (z+0.5*CellSize))) ){
-		{
-		int index_mask = i*N*(N+2) + j*(N+2) + k;
-		halomask[index_mask] = 1.0;
-		//halomask[index_mask] += CellFill;
-	      
-	      
-		//float frad = pow(R/RTH,3);
-		//int index_mask = i*N*(N+2) + j*(N+2) + k;
-		//sx1[index_mask] = (xhE-x) * frad;
-		//sy1[index_mask] = (yhE-y) * frad;
-		//sz1[index_mask] = (zhE-z) * frad;
-		//halomask[index_mask] += CellFill;
-		//fcoll += CellFill;
-
-	      }
-	      
-
-	    }
+	    } 
 	  }
 	}
       }
+
     }
+  
 
     // Threshold the halomask
-    for(int ic=0;ic<Nlocal;ic++){
-      for(int jc=0;     jc<N;jc++){
-	for(int kc=0;     kc<N;kc++){
-
-	  int index_dv = ic*N*(N+2) + jc*(N+2) + kc;
-	  if(halomask[index_dv] > 1.) halomask[index_dv] = 1.;
-	}
-      }
-    }
+    //for(int ic=0;ic<Nlocal;ic++){
+    //  for(int jc=0;     jc<N;jc++){
+    //	for(int kc=0;     kc<N;kc++){
+    //	  
+    //	  int index_dv = ic*N*(N+2) + jc*(N+2) + kc;
+    //	  if(halomask[index_dv] > 1.) halomask[index_dv] = 1.;
+    //	}
+    //}
+    //}
 
   }
 
@@ -813,10 +760,8 @@ void MakeMaps_flatsky()
     D2 = 3. / 7. * D * D;
   }
 
-  // Conversion factor for delta1 to HI mass
-  //float HI_cell = 213666890.3;
-  float HI_cell = 152857296.6;
-  //float HI_cell = 1.0;
+  // Conversion factor for delta1 to HI mass density
+  float HIcell = clParameters.HIcell;
   
   // Loop through cells in the slab
   for(int ic=0;ic<Nlocal;ic++){
@@ -832,7 +777,7 @@ void MakeMaps_flatsky()
 
 	float zcur   = Radius2Float(r,Radius2RedshiftTable);
 
-	int index_dv = ic*N*(N+2) + jc*(N+2) + kc;
+	long index_dv = ic*N*(N+2) + jc*(N+2) + kc;
 
 	// 21cm redshift factors
 	float   Wdtb;
@@ -894,23 +839,23 @@ void MakeMaps_flatsky()
 	zE = zL + sz ;
       
 	// Add contribution to Eulerian point - xz flip happens for halos.
-	ig = int((xE - x0)/CellSize); // NO PERIODIC WRAP
-	jg = int((yE - y0)/CellSize);
-	kg = int((zE - z0)/CellSize);
+	ig = int((xE - x0)/CellSize/2); // NO PERIODIC WRAP
+	jg = int((yE - y0)/CellSize/2);
+	kg = int((zE - z0)/CellSize/2);
 
-	if( ((ig >= 0) && (ig < N))
-	    && ((jg >= 0) && (jg < N))
-	    && ((kg >= 0) && (kg < N)) ){
+	if( ((ig >= 0) && (ig < N/2))
+	    && ((jg >= 0) && (jg < N/2))
+	    && ((kg >= 0) && (kg < N/2)) ){
 
-	  pixel = ig*N*N + jg*N + kg;
+	  pixel = ig*(N/2)*(N/2) + jg*(N/2) + kg;
 
-	  if(pixel > tmapsize) printf("Uh oh this shouldn't be happening... \n");
+	  if(pixel > tmsize) printf("Uh oh this shouldn't be happening... \n");
 
 	  if(Parameters.DoMap[DTBCODE]==1){ 
 	    if(clParameters.halomask == 1){
-	      dtbmapl[pixel] += HI_cell*(1.+delta1[index_dv])*(1.-halomask[index_dv]);
+	      dtbmapl[pixel] += HIcell*(1.+delta1[index_dv])*(1.-halomask[index_dv]);
 	    }else{
-	      dtbmapl[pixel] += HI_cell*(1.+delta1[index_dv]);
+	      dtbmapl[pixel] += HIcell*(1.+delta1[index_dv]);
 	    }
 	  }
 	  
@@ -926,14 +871,14 @@ void MakeMaps_flatsky()
 
   // sum process contributions
   if(Parameters.DoMap[DTBCODE]==1)
-    MPI_Reduce(dtbmapl, dtbmap,tmapsize, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(dtbmapl, dtbmap,tmsize, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 
   if(Parameters.DoMap[DTBCODE]==1) delete dtbmapl;
   
   if(myid==0) printf("\n Sum process contributions complete\n");
 
   // report statistics
-  if(Parameters.DoMap[DTBCODE]==1 && myid==0) ReportMapStatistics(dtbmap,tmapsize," 21-cm dTb");
+  if(Parameters.DoMap[DTBCODE]==1 && myid==0) ReportMapStatistics(dtbmap,tmsize," 21-cm dTb");
 
   if (myid==0) printf("\n Report map stats complete \n");
 

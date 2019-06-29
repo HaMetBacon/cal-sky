@@ -762,6 +762,9 @@ void MakeMaps_flatsky()
 
   // Conversion factor for delta1 to HI mass density
   float HIcell = clParameters.HIcell;
+  float b1 = Parameters.b1;
+  float b2 = Parameters.b2;
+  float bs2 = Parameters.bs2;
   
   // Loop through cells in the slab
   for(int ic=0;ic<Nlocal;ic++){
@@ -853,9 +856,19 @@ void MakeMaps_flatsky()
 
 	  if(Parameters.DoMap[DTBCODE]==1){ 
 	    if(clParameters.halomask == 1){
-	      dtbmapl[pixel] += HIcell*(1.+delta1[index_dv])*(1.-halomask[index_dv]);
+	      if(iLPT > 1){
+		dtbmapl[pixel] += (HIcell*(1.+b1*delta1[index_dv]+b2*delta1[index_dv]*delta1[index_dv]
+					   +bs2*s2[index_dv])*(1.-halomask[index_dv]));
+	      }else{
+		dtbmapl[pixel] += HIcell*(1.+b1*delta1[index_dv])*(1.-halomask[index_dv]);
+	      }
 	    }else{
-	      dtbmapl[pixel] += HIcell*(1.+delta1[index_dv]);
+	      if(iLPT > 1){
+		dtbmapl[pixel] += (HIcell*(1.+b1*delta1[index_dv]+b2*delta1[index_dv]*delta1[index_dv]
+					   +bs2*s2[index_dv]));
+	      }else{
+		dtbmapl[pixel] += HIcell*(1.+b1*delta1[index_dv]):
+	      }
 	    }
 	  }
 	  

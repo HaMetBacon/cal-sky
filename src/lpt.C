@@ -115,8 +115,9 @@ void Displace_1LPT(float *d, float *vx, float *vy, float *vz)
 }
 
 void Displace_2LPT(float  *d1, float  *d2, 
-			 float *vxx, float *vyy, float *vzz, 
-			 float *vxy, float *vxz, float *vyz)
+		   float *vxx, float *vyy, float *vzz, 
+		   float *vxy, float *vxz, float *vyz, 
+		   float *s22)
 {
 
   int i,j,k,r,index;
@@ -232,6 +233,8 @@ void Displace_2LPT(float  *d1, float  *d2,
   rfftwnd_mpi(iplan, 1, vxy, NULL, FFTW_NORMAL_ORDER);
   rfftwnd_mpi(iplan, 1, vxz, NULL, FFTW_NORMAL_ORDER);
   rfftwnd_mpi(iplan, 1, vyz, NULL, FFTW_NORMAL_ORDER);
+  // Convert d1 back to real space
+  rfftwnd_mpi(iplan, 1, d1 , NULL, FFTW_NORMAL_ORDER);
 
   NormalizeArray(vxx, N, size_fftw, 1.5);
   NormalizeArray(vxy, N, size_fftw, 1.5);
@@ -239,13 +242,23 @@ void Displace_2LPT(float  *d1, float  *d2,
   NormalizeArray(vyy, N, size_fftw, 1.5);
   NormalizeArray(vyz, N, size_fftw, 1.5);
   NormalizeArray(vzz, N, size_fftw, 1.5);
+  NormalizeArray(d1 , N, size_fftw, 1.5);
 
   // Now apply 2LPT to obtain delta_2 in real space
+  // Also compute s2
   for(int ic=0;ic<Nlocal;ic++){
     for(int jc=0;jc<N;jc++){
       for(int kc=0;kc<N;kc++){
 
 	index = ic*N*(N+2) + jc*(N+2) + kc;
+
+	s22[index] = 0.0
+	  + (vxx[index] - d1[index]/3)*(vxx[index] - d1[index]/3)
+	  + (vyy[index] - d1[index]/3)*(vyy[index] - d1[index]/3)
+	  + (vzz[index] - d1[index]/3)*(vzz[index] - d1[index]/3)
+	  + 2*vxy[index]*vxy[index]
+	  + 2*vxz[index]*vxz[index]
+	  + 2*vyz[index]*vyz[index];
 	
 	d2[index] = 0.0 
 	  + vxx[index]*vyy[index]  

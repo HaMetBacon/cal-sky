@@ -83,6 +83,18 @@ void ReadParameterFile()
   addr[nt] = &Parameters.nbuff;
   id[nt++] = INT;
 
+  strcpy(tag[nt], "b1");
+  addr[nt] = &Parameters.b1;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "b2");
+  addr[nt] = &Parameters.b2;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "bs2");
+  addr[nt] = &Parameters.bs2;
+  id[nt++] = FLOAT;
+
   strcpy(tag[nt], "fov");
   addr[nt] = &Parameters.fov;
   id[nt++] = FLOAT;

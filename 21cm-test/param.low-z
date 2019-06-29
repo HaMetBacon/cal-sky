@@ -7,6 +7,12 @@ ns              0.96
 w               -1
 
 # These are the parameters describing the map 
+flatsky         1
+nbuff           0
+
+b1              1.
+b2              0.
+bs2             0.
 
 fov	    	360  # field of view in degrees (not used)
 theta		90   # polar angle of center of map in degrees (not used)

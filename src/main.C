@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
   // LPT Displacements
   if(clParameters.lptcode>1){
-    Displace_2LPT(delta1, delta2, sx1, sy1, sz1, sx2, sy2, sz2);
+    Displace_2LPT(delta1, delta2, sx1, sy1, sz1, sx2, sy2, sz2, s2);
     Displace_1LPT(delta2, sx2, sy2, sz2);
     if(clParameters.deltain==1)
       ReadGridFromFile( delta1, clParameters.DeltaFile);

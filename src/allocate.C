@@ -40,7 +40,7 @@ void AllocateArrays()
 
   int Nfields = 4; // 1LPT only, delta + S_1LPT
 
-  if(clParameters.lptcode==2) Nfields += 3;
+  if(clParameters.lptcode==2) Nfields += 4; // Need an extra one for s2
   
   float overhead_usage = (float)ovrt*(float)total_local_size;
   float mesh_usage = (float)total_local_size*Nfields*4.;
@@ -78,6 +78,7 @@ void AllocateArrays()
     sx2 = new float[size_fftw]();
     sy2 = new float[size_fftw]();
     sz2 = new float[size_fftw]();
+    s2 = new float[size_fftw]();
     delta2 = delta1;
   }
 

@@ -47,7 +47,7 @@ extern long int size_fftw;
 extern long mapsize, tmapsize;
 
 // Arrays
-extern fftw_real *delta, *delta1, *delta2, *sx1, *sy1, *sz1, *sx2, *sy2, *sz2;
+extern fftw_real *delta, *delta1, *delta2, *sx1, *sy1, *sz1, *sx2, *sy2, *sz2, *s2;
 extern float *zmask;
 extern float *halomask;
 extern float *taumap,  *kszmap,  *dtbmap,  *kapmap,  *cibmap;
@@ -63,7 +63,7 @@ extern struct Halos{
 // Parameters
 extern struct Parameter{
   float Omegam, Omegab, Omegal, h, ns, Sigma8, w;
-  int flatsky, nbuff;
+  int flatsky, nbuff, b1, b2, bs2;
   float BoxSize, zInit, fov, theta, phi;
   float nu1,nu2;
   int Nnu;
